@@ -9,6 +9,9 @@ final class ControlPanelModel: ObservableObject {
     @Published var calendarAccess: AccessState = .needsAccess
     @Published var locationAccess: AccessState = .needsAccess
     @Published var agenda = Agenda()
+    @Published var selectedDay: Date?
+    @Published var selectedEvents: [AgendaEvent] = []
+    @Published var markedDays: Set<Date> = []
     @Published var calendarColors: [String: Color] = [:]
     @Published var battery: BatteryReport?
     @Published var wifi = WiFiState()
@@ -38,6 +41,7 @@ final class ControlPanelModel: ObservableObject {
         prepareServices()
         now = Date()
         displayedMonth = now
+        selectedDay = nil
         ticks = 0
         wifiMessage = nil
         bluetoothMessage = nil
@@ -60,14 +64,33 @@ final class ControlPanelModel: ObservableObject {
 
     func showPreviousMonth() {
         displayedMonth = MonthGrid.shift(displayedMonth, months: -1)
+        refreshCalendar()
     }
 
     func showNextMonth() {
         displayedMonth = MonthGrid.shift(displayedMonth, months: 1)
+        refreshCalendar()
     }
 
     func showCurrentMonth() {
         displayedMonth = now
+        selectedDay = nil
+        refreshCalendar()
+    }
+
+    func select(_ day: MonthDay) {
+        selectedDay = day.isToday ? nil : Calendar.current.startOfDay(for: day.date)
+        if day.isInMonth {
+            rebuildAgenda()
+        } else {
+            displayedMonth = day.date
+            refreshCalendar()
+        }
+    }
+
+    func isSelected(_ day: MonthDay) -> Bool {
+        guard let selectedDay else { return false }
+        return Calendar.current.isDate(day.date, inSameDayAs: selectedDay)
     }
 
     func requestCalendarAccess() {
@@ -213,16 +236,40 @@ final class ControlPanelModel: ObservableObject {
     }
 
     private func refreshCalendar() {
-        guard let snapshot = calendar?.load(now: now) else { return }
+        guard let calendar, let interval = visibleInterval() else { return }
+        let snapshot = calendar.load(in: interval)
         events = snapshot.events
         calendarColors = snapshot.colors
+        let marked = Agenda.markedDays(events: events, in: interval)
+        if marked != markedDays {
+            markedDays = marked
+        }
         rebuildAgenda()
+    }
+
+    private func visibleInterval() -> DateInterval? {
+        guard let nearby = Agenda.range(around: now) else { return nil }
+        var start = nearby.start
+        var end = nearby.end
+        if let month = grid.interval {
+            start = min(start, month.start)
+            end = max(end, month.end)
+        }
+        if let selectedDay, let next = Calendar.current.date(byAdding: .day, value: 1, to: selectedDay) {
+            start = min(start, selectedDay)
+            end = max(end, next)
+        }
+        return DateInterval(start: start, end: end)
     }
 
     private func rebuildAgenda() {
         let next = Agenda.build(events: events, now: now)
         if next != agenda {
             agenda = next
+        }
+        let selected = selectedDay.map { Agenda.events(on: $0, from: events) } ?? []
+        if selected != selectedEvents {
+            selectedEvents = selected
         }
     }
 

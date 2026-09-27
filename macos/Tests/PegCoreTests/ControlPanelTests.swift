@@ -38,6 +38,11 @@ final class ClockFormatTests: XCTestCase {
         XCTAssertEqual(ClockFormat.header(makeDate(2026, 1, 5, 9, 5, 0), calendar: makeCalendar()), "2026-01-05(月) 09:05:00")
     }
 
+    func testFormatsDayTitle() {
+        XCTAssertEqual(ClockFormat.dayTitle(makeDate(2026, 9, 25, 8), calendar: makeCalendar()), "9月25日(金)")
+        XCTAssertEqual(ClockFormat.dayTitle(makeDate(2026, 12, 1), calendar: makeCalendar()), "12月1日(火)")
+    }
+
     func testFormatsDuration() {
         XCTAssertEqual(ClockFormat.duration(minutes: 48), "0:48")
         XCTAssertEqual(ClockFormat.duration(minutes: 995), "16:35")
@@ -56,6 +61,12 @@ final class MonthGridTests: XCTestCase {
         XCTAssertEqual(grid.weeks.last?.map(\.day), [27, 28, 29, 30, 1, 2, 3])
         XCTAssertEqual(grid.weeks.flatMap { $0 }.filter(\.isToday).map(\.day), [27])
         XCTAssertEqual(grid.weeks.last?.map(\.weekday), [0, 1, 2, 3, 4, 5, 6])
+    }
+
+    func testReportsIntervalOfVisibleDays() {
+        let today = makeDate(2026, 9, 27, 14)
+        let grid = MonthGrid(containing: today, today: today, calendar: makeCalendar())
+        XCTAssertEqual(grid.interval, DateInterval(start: makeDate(2026, 8, 30), end: makeDate(2026, 10, 4)))
     }
 
     func testBuildsMonthsWithFourAndSixWeeks() {
@@ -138,6 +149,38 @@ final class AgendaTests: XCTestCase {
         XCTAssertEqual(upcoming.status(at: now), .upcoming)
         XCTAssertEqual(allDay.status(at: now), .upcoming)
         XCTAssertEqual(current.timeText(calendar: makeCalendar()), "14:00 - 15:00")
+    }
+
+    func testSelectsEventsOnGivenDay() {
+        let events = [
+            makeEvent("午後", start: makeDate(2026, 9, 25, 15), end: makeDate(2026, 9, 25, 16)),
+            makeEvent("午前", start: makeDate(2026, 9, 25, 9), end: makeDate(2026, 9, 25, 10)),
+            makeEvent("別の日", start: makeDate(2026, 9, 26, 9), end: makeDate(2026, 9, 26, 10)),
+            makeEvent("深夜まで", start: makeDate(2026, 9, 24, 22), end: makeDate(2026, 9, 25, 0))
+        ]
+        let selected = Agenda.events(on: makeDate(2026, 9, 25, 13), from: events, calendar: makeCalendar())
+        XCTAssertEqual(selected.map(\.title), ["午前", "午後"])
+    }
+
+    func testMarksDaysWithEvents() {
+        let interval = DateInterval(start: makeDate(2026, 8, 30), end: makeDate(2026, 10, 4))
+        let events = [
+            makeEvent("単日", start: makeDate(2026, 9, 10, 9), end: makeDate(2026, 9, 10, 10)),
+            makeEvent("旅行", start: makeDate(2026, 9, 20), end: makeDate(2026, 9, 22, 23, 59, 59), allDay: true),
+            makeEvent("月またぎ", start: makeDate(2026, 8, 28, 9), end: makeDate(2026, 8, 31, 12)),
+            makeEvent("深夜まで", start: makeDate(2026, 9, 14, 22), end: makeDate(2026, 9, 15, 0)),
+            makeEvent("範囲外", start: makeDate(2026, 10, 10, 9), end: makeDate(2026, 10, 10, 10))
+        ]
+        let days = Agenda.markedDays(events: events, in: interval, calendar: makeCalendar())
+        XCTAssertEqual(days, [
+            makeDate(2026, 8, 30),
+            makeDate(2026, 8, 31),
+            makeDate(2026, 9, 10),
+            makeDate(2026, 9, 14),
+            makeDate(2026, 9, 20),
+            makeDate(2026, 9, 21),
+            makeDate(2026, 9, 22)
+        ])
     }
 
     func testRangeCoversTwoDays() {

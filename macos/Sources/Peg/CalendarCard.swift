@@ -25,7 +25,12 @@ struct CalendarCard: View {
                     navigationButton(symbol: "chevron.right", label: "次の月", action: model.showNextMonth)
                 }
             }
-            MonthView(grid: model.grid)
+            MonthView(
+                grid: model.grid,
+                markedDays: model.calendarAccess == .granted ? model.markedDays : [],
+                isSelected: model.isSelected,
+                select: model.select
+            )
             PanelDivider()
             agenda
         }
@@ -62,11 +67,16 @@ struct CalendarCard: View {
         case .granted:
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    SectionLabel(text: "今日の予定")
-                    AgendaList(model: model, events: model.agenda.today)
-                    if !model.agenda.tomorrow.isEmpty {
-                        SectionLabel(text: "明日")
-                        AgendaList(model: model, events: model.agenda.tomorrow)
+                    if let day = model.selectedDay {
+                        SectionLabel(text: ClockFormat.dayTitle(day) + "の予定")
+                        AgendaList(model: model, events: model.selectedEvents, followsClock: false)
+                    } else {
+                        SectionLabel(text: "今日の予定")
+                        AgendaList(model: model, events: model.agenda.today, followsClock: true)
+                        if !model.agenda.tomorrow.isEmpty {
+                            SectionLabel(text: "明日")
+                            AgendaList(model: model, events: model.agenda.tomorrow, followsClock: true)
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -90,6 +100,9 @@ struct CalendarCard: View {
 
 struct MonthView: View {
     let grid: MonthGrid
+    let markedDays: Set<Date>
+    let isSelected: (MonthDay) -> Bool
+    let select: (MonthDay) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -104,17 +117,42 @@ struct MonthView: View {
             ForEach(Array(grid.weeks.enumerated()), id: \.offset) { _, week in
                 HStack(spacing: 0) {
                     ForEach(week) { day in
-                        Text(String(day.day))
-                            .font(.system(size: 12, weight: day.isToday ? .bold : .medium, design: .monospaced))
-                            .foregroundStyle(color(for: day))
-                            .frame(width: 28, height: 28)
-                            .background(day.isToday ? Theme.accent : Color.clear)
-                            .clipShape(Circle())
-                            .frame(maxWidth: .infinity, minHeight: 34)
+                        Button {
+                            select(day)
+                        } label: {
+                            cell(for: day)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
         }
+    }
+
+    private func cell(for day: MonthDay) -> some View {
+        Text(String(day.day))
+            .font(.system(size: 12, weight: day.isToday ? .bold : .medium, design: .monospaced))
+            .foregroundStyle(color(for: day))
+            .frame(width: 28, height: 28)
+            .background(day.isToday ? Theme.accent : Color.clear)
+            .clipShape(Circle())
+            .overlay(
+                Circle()
+                    .stroke(isSelected(day) ? Theme.accent : Color.clear, lineWidth: 1.5)
+            )
+            .overlay(alignment: .bottom) {
+                Circle()
+                    .fill(day.isToday ? Color.white : dotColor(for: day))
+                    .frame(width: 3, height: 3)
+                    .padding(.bottom, 3)
+                    .opacity(markedDays.contains(day.date) ? 1 : 0)
+            }
+            .frame(maxWidth: .infinity, minHeight: 34)
+            .contentShape(Rectangle())
+    }
+
+    private func dotColor(for day: MonthDay) -> Color {
+        day.isInMonth ? Theme.accent : Theme.textDim
     }
 
     private func color(for day: MonthDay) -> Color {
@@ -142,6 +180,7 @@ struct MonthView: View {
 struct AgendaList: View {
     @ObservedObject var model: ControlPanelModel
     let events: [AgendaEvent]
+    let followsClock: Bool
 
     var body: some View {
         if events.isEmpty {
@@ -160,7 +199,7 @@ struct AgendaList: View {
                 ForEach(events) { event in
                     AgendaRow(
                         event: event,
-                        status: event.status(at: model.now),
+                        status: followsClock ? event.status(at: model.now) : .upcoming,
                         color: model.calendarColors[event.calendarID] ?? Theme.accent,
                         open: model.openMeet
                     )

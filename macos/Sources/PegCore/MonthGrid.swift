@@ -16,6 +16,7 @@ public struct MonthGrid: Equatable, Sendable {
     public let year: Int
     public let month: Int
     public let weeks: [[MonthDay]]
+    public let interval: DateInterval?
 
     public var title: String {
         "\(year)年\(month)月"
@@ -30,6 +31,7 @@ public struct MonthGrid: Equatable, Sendable {
             let range = calendar.range(of: .day, in: .month, for: first)
         else {
             weeks = []
+            interval = nil
             return
         }
         let leading = calendar.component(.weekday, from: first) - 1
@@ -47,6 +49,11 @@ public struct MonthGrid: Equatable, Sendable {
             ))
         }
         weeks = stride(from: 0, to: cells.count, by: 7).map { Array(cells[$0..<min($0 + 7, cells.count)]) }
+        if let start = cells.first?.date, let last = cells.last?.date, let end = calendar.date(byAdding: .day, value: 1, to: last) {
+            interval = DateInterval(start: start, end: end)
+        } else {
+            interval = nil
+        }
     }
 
     public static func shift(_ date: Date, months: Int, calendar: Calendar = .current) -> Date {

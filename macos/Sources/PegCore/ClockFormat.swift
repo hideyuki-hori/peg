@@ -18,6 +18,11 @@ public enum ClockFormat {
         )
     }
 
+    public static func dayTitle(_ date: Date, calendar: Calendar = .current) -> String {
+        let parts = calendar.dateComponents([.month, .day, .weekday], from: date)
+        return "\(parts.month ?? 0)月\(parts.day ?? 0)日(\(symbol(forWeekday: parts.weekday ?? 1)))"
+    }
+
     public static func time(_ date: Date, calendar: Calendar = .current) -> String {
         let parts = calendar.dateComponents([.hour, .minute], from: date)
         return String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)

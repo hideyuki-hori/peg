@@ -48,8 +48,8 @@ final class CalendarService {
         }
     }
 
-    func load(now: Date) -> CalendarSnapshot {
-        guard state == .granted, let range = Agenda.range(around: now) else {
+    func load(in range: DateInterval) -> CalendarSnapshot {
+        guard state == .granted else {
             return CalendarSnapshot(events: [], colors: [:])
         }
         let predicate = store.predicateForEvents(withStart: range.start, end: range.end, calendars: nil)

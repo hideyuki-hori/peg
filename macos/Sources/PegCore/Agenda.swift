@@ -81,6 +81,29 @@ public struct Agenda: Equatable, Sendable {
         )
     }
 
+    public static func events(on day: Date, from events: [AgendaEvent], calendar: Calendar = .current) -> [AgendaEvent] {
+        let start = calendar.startOfDay(for: day)
+        guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return [] }
+        return select(events, from: start, to: end)
+    }
+
+    public static func markedDays(
+        events: [AgendaEvent],
+        in interval: DateInterval,
+        calendar: Calendar = .current
+    ) -> Set<Date> {
+        var days = Set<Date>()
+        for event in events {
+            var day = calendar.startOfDay(for: max(event.start, interval.start))
+            while day < event.end, day < interval.end {
+                days.insert(day)
+                guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+                day = next
+            }
+        }
+        return days
+    }
+
     static func select(_ events: [AgendaEvent], from start: Date, to end: Date) -> [AgendaEvent] {
         events
             .filter { $0.start < end && $0.end > start }
