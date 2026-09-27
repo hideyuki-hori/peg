@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var launcher: LauncherController?
     private var hotKey: HotKey?
     private var doubleCommand: DoubleCommandMonitor?
+    private var statusItem: StatusItemController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         do {
@@ -36,6 +37,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if hotKey == nil {
             NSLog("Peg: failed to register cmd+space")
         }
+
+        let statusItem = StatusItemController { [weak launcher, weak doubleCommand] in
+            doubleCommand?.reset()
+            launcher?.toggle(mode: .apps)
+        }
+        statusItem.start()
+        self.statusItem = statusItem
 
         NSApp.mainMenu = makeMainMenu()
         Accessibility.requestAccess()
