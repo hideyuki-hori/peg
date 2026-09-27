@@ -32,8 +32,10 @@ struct CardHeader<Icon: View, Trailing: View>: View {
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)
+                .lineLimit(1)
             Spacer(minLength: 8)
             trailing
+                .layoutPriority(1)
         }
         .frame(height: 20)
     }

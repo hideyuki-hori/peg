@@ -6,9 +6,7 @@ import PegCore
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var clipboard: ClipboardMonitor?
     private var launcher: LauncherController?
-    private var controlPanel: ControlPanelController?
     private var hotKey: HotKey?
-    private var controlPanelHotKey: HotKey?
     private var doubleCommand: DoubleCommandMonitor?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -37,16 +35,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if hotKey == nil {
             NSLog("Peg: failed to register cmd+space")
-        }
-
-        let controlPanel = ControlPanelController()
-        self.controlPanel = controlPanel
-        controlPanelHotKey = HotKey(keyCode: kVK_Space, modifiers: cmdKey | shiftKey) { [weak controlPanel, weak doubleCommand] in
-            doubleCommand?.reset()
-            controlPanel?.toggle()
-        }
-        if controlPanelHotKey == nil {
-            NSLog("Peg: failed to register cmd+shift+space")
         }
 
         NSApp.mainMenu = makeMainMenu()

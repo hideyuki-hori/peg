@@ -35,6 +35,7 @@ final class LauncherModel: ObservableObject {
     }
     @Published var selection = 0
     @Published var presentation = 0
+    @Published var layout = LauncherLayout()
     @Published private(set) var apps: [AppItem] = []
     @Published private(set) var clips: [ClipEntry] = []
 

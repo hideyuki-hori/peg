@@ -342,3 +342,45 @@ final class WiFiNetworksTests: XCTestCase {
         XCTAssertEqual(WiFiNetworks.strength(rssi: -90), 0.1)
     }
 }
+
+final class LauncherLayoutTests: XCTestCase {
+    func testPlacesCardsBesideLauncher() {
+        let layout = LauncherLayout(width: 1512, height: 944)
+        XCTAssertEqual(layout.launcherX, 436)
+        XCTAssertEqual(layout.launcherY, 199)
+        XCTAssertEqual(layout.clockY, 119)
+        XCTAssertEqual(layout.cardWidth, 340)
+        XCTAssertEqual(layout.leftX, 72)
+        XCTAssertEqual(layout.rightX, 1100)
+        XCTAssertEqual(layout.columnY, 119)
+        XCTAssertEqual(layout.columnHeight, 809)
+    }
+
+    func testKeepsCardsNextToLauncherOnWideScreens() {
+        let layout = LauncherLayout(width: 2560, height: 1400)
+        XCTAssertEqual(layout.launcherX, 960)
+        XCTAssertEqual(layout.cardWidth, 340)
+        XCTAssertEqual(layout.leftX, 596)
+        XCTAssertEqual(layout.rightX, 1624)
+    }
+
+    func testShrinksCardsOnNarrowScreens() {
+        XCTAssertEqual(LauncherLayout(width: 1440, height: 860).cardWidth, 340)
+        XCTAssertEqual(LauncherLayout(width: 1360, height: 860).cardWidth, 320)
+        XCTAssertEqual(LauncherLayout(width: 1280, height: 760).cardWidth, 280)
+        XCTAssertEqual(LauncherLayout(width: 1280, height: 760).leftX, 16)
+    }
+
+    func testHidesCardsWhenTheyDoNotFit() {
+        let layout = LauncherLayout(width: 1200, height: 760)
+        XCTAssertNil(layout.cardWidth)
+        XCTAssertEqual(layout.launcherX, 280)
+    }
+
+    func testHidesClockWhenThereIsNoRoomAbove() {
+        let layout = LauncherLayout(width: 1512, height: 600)
+        XCTAssertEqual(layout.launcherY, 68)
+        XCTAssertNil(layout.clockY)
+        XCTAssertEqual(layout.columnY, 68)
+    }
+}

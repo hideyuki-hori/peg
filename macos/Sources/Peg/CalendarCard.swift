@@ -15,6 +15,7 @@ struct CalendarCard: View {
                     Button(action: model.showCurrentMonth) {
                         Text("今日")
                             .font(.system(size: 11, weight: .semibold))
+                            .fixedSize()
                             .foregroundStyle(Theme.textSecondary)
                             .padding(.horizontal, 8)
                             .frame(height: 24)
@@ -34,7 +35,6 @@ struct CalendarCard: View {
             PanelDivider()
             agenda
         }
-        .frame(maxHeight: .infinity, alignment: .top)
     }
 
     @ViewBuilder
@@ -51,7 +51,6 @@ struct CalendarCard: View {
                 isProminent: true,
                 action: model.requestCalendarAccess
             )
-            Spacer(minLength: 0)
         case .denied:
             SectionLabel(text: "今日の予定")
             NoticeBox(
@@ -63,24 +62,21 @@ struct CalendarCard: View {
                 isProminent: false,
                 action: model.requestCalendarAccess
             )
-            Spacer(minLength: 0)
         case .granted:
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    if let day = model.selectedDay {
-                        SectionLabel(text: ClockFormat.dayTitle(day) + "の予定")
-                        AgendaList(model: model, events: model.selectedEvents, followsClock: false)
-                    } else {
-                        SectionLabel(text: "今日の予定")
-                        AgendaList(model: model, events: model.agenda.today, followsClock: true)
-                        if !model.agenda.tomorrow.isEmpty {
-                            SectionLabel(text: "明日")
-                            AgendaList(model: model, events: model.agenda.tomorrow, followsClock: true)
-                        }
+            VStack(alignment: .leading, spacing: 12) {
+                if let day = model.selectedDay {
+                    SectionLabel(text: ClockFormat.dayTitle(day) + "の予定")
+                    AgendaList(model: model, events: model.selectedEvents, followsClock: false)
+                } else {
+                    SectionLabel(text: "今日の予定")
+                    AgendaList(model: model, events: model.agenda.today, followsClock: true)
+                    if !model.agenda.tomorrow.isEmpty {
+                        SectionLabel(text: "明日")
+                        AgendaList(model: model, events: model.agenda.tomorrow, followsClock: true)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

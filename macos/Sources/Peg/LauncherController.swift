@@ -15,6 +15,7 @@ final class LauncherPanel: NSPanel {
 @MainActor
 final class LauncherController: NSObject, NSWindowDelegate {
     let model = LauncherModel()
+    let panelModel = ControlPanelModel()
     private let panel: LauncherPanel
     private let clipboard: ClipboardMonitor
     private let backdrop = Backdrop()
@@ -23,7 +24,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
     init(clipboard: ClipboardMonitor) {
         self.clipboard = clipboard
         panel = LauncherPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
+            contentRect: NSRect(x: 0, y: 0, width: LauncherLayout.launcherWidth, height: LauncherLayout.launcherHeight),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -31,13 +32,16 @@ final class LauncherController: NSObject, NSWindowDelegate {
         super.init()
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
+        panel.hasShadow = false
         panel.level = Backdrop.panelLevel
         panel.hidesOnDeactivate = false
         panel.isMovableByWindowBackground = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.contentView = NSHostingView(rootView: LauncherView(model: model))
+        panel.contentView = NSHostingView(rootView: LauncherScreenView(model: model, panel: panelModel))
         panel.delegate = self
+        panelModel.onClose = { [weak self] in
+            self?.hide()
+        }
         model.onLaunch = { [weak self] entry in
             self?.launch(entry)
         }
@@ -65,11 +69,24 @@ final class LauncherController: NSObject, NSWindowDelegate {
             self?.hide()
         }
         panel.makeKeyAndOrderFront(nil)
+        refreshCards(for: mode)
     }
 
     func hide() {
         panel.orderOut(nil)
         backdrop.hide()
+        panelModel.stop()
+    }
+
+    private func refreshCards(for mode: LauncherModel.Mode) {
+        guard mode == .apps, model.layout.cardWidth != nil || model.layout.clockY != nil else {
+            panelModel.stop()
+            return
+        }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.panel.isVisible, self.model.mode == .apps else { return }
+            self.panelModel.start()
+        }
     }
 
     func windowDidResignKey(_ notification: Notification) {
@@ -80,10 +97,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
         guard let frame = screen?.visibleFrame else { return }
-        let size = panel.frame.size
-        let x = frame.midX - size.width / 2
-        let y = frame.minY + (frame.height - size.height) * 0.62
-        panel.setFrameOrigin(NSPoint(x: x, y: y))
+        model.layout = LauncherLayout(width: frame.width, height: frame.height)
+        panel.setFrame(frame, display: true)
     }
 
     private func launch(_ entry: AppEntry) {
