@@ -8,7 +8,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var launcher: LauncherController?
     private var hotKey: HotKey?
     private var doubleCommand: DoubleCommandMonitor?
-    private var statusItem: NSStatusItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         do {
@@ -39,29 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         NSApp.mainMenu = makeMainMenu()
-        statusItem = makeStatusItem()
         Accessibility.requestAccess()
-    }
-
-    private func makeStatusItem() -> NSStatusItem {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(systemSymbolName: "pin.fill", accessibilityDescription: "Peg")
-        let menu = NSMenu()
-        menu.addItem(makeItem("アプリを開く", action: #selector(showApps)))
-        menu.addItem(makeItem("クリップボード履歴", action: #selector(showClipboard)))
-        menu.addItem(.separator())
-        menu.addItem(makeItem("設定フォルダを開く", action: #selector(openConfig)))
-        menu.addItem(makeItem("アクセシビリティ設定を開く", action: #selector(openAccessibility)))
-        menu.addItem(.separator())
-        menu.addItem(makeItem("Peg を終了", action: #selector(quit)))
-        item.menu = menu
-        return item
-    }
-
-    private func makeItem(_ title: String, action: Selector) -> NSMenuItem {
-        let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
-        item.target = self
-        return item
     }
 
     private func makeMainMenu() -> NSMenu {
@@ -76,26 +53,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         editItem.submenu = editMenu
         mainMenu.addItem(editItem)
         return mainMenu
-    }
-
-    @objc private func showApps() {
-        launcher?.show(mode: .apps)
-    }
-
-    @objc private func showClipboard() {
-        launcher?.show(mode: .clipboard)
-    }
-
-    @objc private func openConfig() {
-        NSWorkspace.shared.open(PegPaths.configDirectory)
-    }
-
-    @objc private func openAccessibility() {
-        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else { return }
-        NSWorkspace.shared.open(url)
-    }
-
-    @objc private func quit() {
-        NSApp.terminate(nil)
     }
 }
