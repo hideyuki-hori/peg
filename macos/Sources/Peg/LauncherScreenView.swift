@@ -13,7 +13,7 @@ struct LauncherScreenView: View {
                 .floatingShadow()
                 .offset(x: layout.launcherX, y: layout.launcherY)
             if model.mode == .apps {
-                SideCards(panel: panel, layout: layout)
+                SideCards(panel: panel, launcher: model, layout: layout)
             }
         }
         .frame(width: layout.width, height: layout.height, alignment: .topLeading)
@@ -23,9 +23,16 @@ struct LauncherScreenView: View {
 
 struct SideCards: View {
     @ObservedObject var panel: ControlPanelModel
+    let launcher: LauncherModel
     let layout: LauncherLayout
 
     var body: some View {
+        if let todoHeight = layout.todoHeight {
+            TodoCard(model: panel, launcher: launcher)
+                .frame(width: LauncherLayout.launcherWidth, height: todoHeight)
+                .floatingShadow()
+                .offset(x: layout.launcherX, y: layout.todoY)
+        }
         if let clockY = layout.clockY {
             ClockCard(panel: panel)
                 .frame(width: LauncherLayout.launcherWidth, height: LauncherLayout.clockHeight)

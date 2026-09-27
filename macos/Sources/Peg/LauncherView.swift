@@ -27,6 +27,14 @@ struct LauncherView: View {
         .onChange(of: model.presentation) { _, _ in
             focused = true
         }
+        .onChange(of: model.focus) { _, target in
+            focused = target == .search
+        }
+        .onChange(of: focused) { _, isFocused in
+            if isFocused {
+                model.focus = .search
+            }
+        }
     }
 
     private var search: some View {

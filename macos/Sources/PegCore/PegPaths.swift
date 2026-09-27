@@ -11,6 +11,10 @@ public enum PegPaths {
         configDirectory.appendingPathComponent("apps.csv")
     }
 
+    public static var configFile: URL {
+        configDirectory.appendingPathComponent("config.json")
+    }
+
     public static var clipboardFile: URL {
         configDirectory.appendingPathComponent("clipboard.json")
     }

@@ -361,6 +361,15 @@ final class LauncherLayoutTests: XCTestCase {
         XCTAssertEqual(layout.rightX, 1100)
         XCTAssertEqual(layout.columnY, 119)
         XCTAssertEqual(layout.columnHeight, 809)
+        XCTAssertEqual(layout.todoY, 635)
+        XCTAssertEqual(layout.todoHeight, 293)
+    }
+
+    func testLimitsTodoHeight() {
+        XCTAssertEqual(LauncherLayout(width: 2560, height: 1400).todoHeight, 320)
+        XCTAssertEqual(LauncherLayout(width: 1512, height: 860).todoHeight, 241)
+        XCTAssertEqual(LauncherLayout(width: 1512, height: 760).todoHeight, 179)
+        XCTAssertNil(LauncherLayout(width: 1512, height: 740).todoHeight)
     }
 
     func testKeepsCardsNextToLauncherOnWideScreens() {

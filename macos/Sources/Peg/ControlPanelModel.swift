@@ -20,6 +20,9 @@ final class ControlPanelModel: ObservableObject {
     @Published var bluetooth: BluetoothReport?
     @Published var bluetoothMessage: String?
     @Published var busyDevices: Set<String> = []
+    @Published var isTodoReady = false
+    @Published var todos: [TodoItem] = []
+    @Published var todoMessage: String?
 
     var onClose: () -> Void = {}
 
@@ -33,6 +36,10 @@ final class ControlPanelModel: ObservableObject {
     private var isScanning = false
     private var events: [AgendaEvent] = []
 
+    var todoToday: String {
+        TodoDocument.dayString(now)
+    }
+
     var grid: MonthGrid {
         MonthGrid(containing: displayedMonth, today: now)
     }
@@ -45,6 +52,8 @@ final class ControlPanelModel: ObservableObject {
         ticks = 0
         wifiMessage = nil
         bluetoothMessage = nil
+        todoMessage = nil
+        refreshTodos()
         refreshAccess()
         refreshCalendar()
         refreshStatus()
@@ -120,6 +129,20 @@ final class ControlPanelModel: ObservableObject {
     func openMeet(_ url: URL) {
         NSWorkspace.shared.open(url)
         onClose()
+    }
+
+    @discardableResult
+    func addTodo(_ input: String) -> Bool {
+        let today = now
+        return updateTodos { TodoDocument.add(input, to: $0, today: today) }
+    }
+
+    func toggle(_ item: TodoItem) {
+        updateTodos { TodoDocument.toggle(item, in: $0) }
+    }
+
+    func remove(_ item: TodoItem) {
+        updateTodos { TodoDocument.remove(item, in: $0) }
     }
 
     func quit() {
@@ -225,9 +248,48 @@ final class ControlPanelModel: ObservableObject {
             rebuildAgenda()
         }
         if ticks % 5 == 0 {
+            refreshTodos()
             refreshStatus()
             refreshWiFi(scan: ticks % 30 == 0)
         }
+    }
+
+    private func refreshTodos() {
+        guard let url = TodoService.file() else {
+            isTodoReady = false
+            todos = []
+            return
+        }
+        isTodoReady = true
+        do {
+            let next = TodoDocument.sorted(TodoDocument.parse(try TodoService.read(url)))
+            if next != todos {
+                todos = next
+            }
+        } catch {
+            todoMessage = "todo.md を読み込めませんでした"
+        }
+    }
+
+    @discardableResult
+    private func updateTodos(_ change: (String) -> String?) -> Bool {
+        guard let url = TodoService.file() else {
+            refreshTodos()
+            return false
+        }
+        todoMessage = nil
+        var succeeded = false
+        do {
+            if let changed = change(try TodoService.read(url)) {
+                try TodoService.write(changed, to: url)
+                succeeded = true
+            }
+        } catch {
+            todoMessage = "todo.md を更新できませんでした"
+            return false
+        }
+        refreshTodos()
+        return succeeded
     }
 
     private func refreshAccess() {

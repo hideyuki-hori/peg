@@ -79,7 +79,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
     }
 
     private func refreshCards(for mode: LauncherModel.Mode) {
-        guard mode == .apps, model.layout.cardWidth != nil || model.layout.clockY != nil else {
+        let layout = model.layout
+        guard mode == .apps, layout.cardWidth != nil || layout.clockY != nil || layout.todoHeight != nil else {
             panelModel.stop()
             return
         }
@@ -123,6 +124,16 @@ final class LauncherController: NSObject, NSWindowDelegate {
             return event
         }
         let control = event.modifierFlags.contains(.control)
+        let command = event.modifierFlags.contains(.command)
+        if event.keyCode == 45, command, model.mode == .apps, model.layout.todoHeight != nil {
+            model.focus = .todo
+            return nil
+        }
+        if model.focus == .todo {
+            guard event.keyCode == 53 else { return event }
+            model.focus = .search
+            return nil
+        }
         switch event.keyCode {
         case 53:
             hide()

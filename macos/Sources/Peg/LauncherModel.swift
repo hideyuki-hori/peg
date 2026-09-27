@@ -27,6 +27,11 @@ final class LauncherModel: ObservableObject {
         case clipboard
     }
 
+    enum Focus {
+        case search
+        case todo
+    }
+
     @Published var mode: Mode = .apps
     @Published var query = "" {
         didSet {
@@ -36,6 +41,7 @@ final class LauncherModel: ObservableObject {
     @Published var selection = 0
     @Published var presentation = 0
     @Published var layout = LauncherLayout()
+    @Published var focus: Focus = .search
     @Published private(set) var apps: [AppItem] = []
     @Published private(set) var clips: [ClipEntry] = []
 
@@ -71,6 +77,7 @@ final class LauncherModel: ObservableObject {
             .map { AppItem(entry: $0, icon: NSWorkspace.shared.icon(forFile: $0.url.path)) }
         query = ""
         selection = 0
+        focus = .search
         presentation += 1
     }
 

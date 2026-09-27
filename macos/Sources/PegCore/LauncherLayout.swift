@@ -9,6 +9,8 @@ public struct LauncherLayout: Equatable, Sendable {
     public static let margin = 16.0
     public static let maxCardWidth = 340.0
     public static let minCardWidth = 280.0
+    public static let maxTodoHeight = 320.0
+    public static let minTodoHeight = 170.0
 
     public let width: Double
     public let height: Double
@@ -18,6 +20,8 @@ public struct LauncherLayout: Equatable, Sendable {
     public let cardWidth: Double?
     public let columnY: Double
     public let columnHeight: Double
+    public let todoY: Double
+    public let todoHeight: Double?
 
     public init(width: Double = LauncherLayout.launcherWidth, height: Double = LauncherLayout.launcherHeight) {
         self.width = width
@@ -30,6 +34,9 @@ public struct LauncherLayout: Equatable, Sendable {
         cardWidth = side >= LauncherLayout.minCardWidth ? min(side, LauncherLayout.maxCardWidth) : nil
         columnY = clockY ?? launcherY
         columnHeight = max(height - columnY - LauncherLayout.margin, 0)
+        todoY = launcherY + LauncherLayout.launcherHeight + LauncherLayout.spacing
+        let room = height - todoY - LauncherLayout.margin
+        todoHeight = room >= LauncherLayout.minTodoHeight ? min(room, LauncherLayout.maxTodoHeight) : nil
     }
 
     public var leftX: Double {
