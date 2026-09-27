@@ -1,0 +1,274 @@
+import AppKit
+import PegCore
+import SwiftUI
+
+@MainActor
+final class ControlPanelModel: ObservableObject {
+    @Published var now = Date()
+    @Published var displayedMonth = Date()
+    @Published var calendarAccess: AccessState = .needsAccess
+    @Published var locationAccess: AccessState = .needsAccess
+    @Published var agenda = Agenda()
+    @Published var calendarColors: [String: Color] = [:]
+    @Published var battery: BatteryReport?
+    @Published var wifi = WiFiState()
+    @Published var wifiMessage: String?
+    @Published var joiningNetwork: String?
+    @Published var bluetooth: BluetoothReport?
+    @Published var bluetoothMessage: String?
+    @Published var busyDevices: Set<String> = []
+
+    var onClose: () -> Void = {}
+
+    private var calendar: CalendarService?
+    private var location: LocationAccess?
+    private let wifiService = WiFiService()
+    private let worker = DispatchQueue(label: "app.peg.control-panel", qos: .userInitiated)
+    private let scanner = DispatchQueue(label: "app.peg.control-panel.wifi", qos: .utility)
+    private var timer: Timer?
+    private var ticks = 0
+    private var isScanning = false
+    private var events: [AgendaEvent] = []
+
+    var grid: MonthGrid {
+        MonthGrid(containing: displayedMonth, today: now)
+    }
+
+    func start() {
+        prepareServices()
+        now = Date()
+        displayedMonth = now
+        ticks = 0
+        wifiMessage = nil
+        bluetoothMessage = nil
+        refreshAccess()
+        refreshCalendar()
+        refreshStatus()
+        refreshWiFi(scan: true)
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.tick()
+            }
+        }
+    }
+
+    func stop() {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    func showPreviousMonth() {
+        displayedMonth = MonthGrid.shift(displayedMonth, months: -1)
+    }
+
+    func showNextMonth() {
+        displayedMonth = MonthGrid.shift(displayedMonth, months: 1)
+    }
+
+    func showCurrentMonth() {
+        displayedMonth = now
+    }
+
+    func requestCalendarAccess() {
+        switch calendarAccess {
+        case .needsAccess:
+            calendar?.request()
+        case .denied:
+            SystemSettings.calendarPrivacy.open()
+            onClose()
+        case .granted:
+            break
+        }
+    }
+
+    func requestLocationAccess() {
+        switch locationAccess {
+        case .needsAccess:
+            location?.request()
+        case .denied:
+            SystemSettings.locationPrivacy.open()
+            onClose()
+        case .granted:
+            break
+        }
+    }
+
+    func openMeet(_ url: URL) {
+        NSWorkspace.shared.open(url)
+        onClose()
+    }
+
+    func quit() {
+        NSApp.terminate(nil)
+    }
+
+    func open(_ settings: SystemSettings) {
+        settings.open()
+        onClose()
+    }
+
+    func setWiFiPower(_ isOn: Bool) {
+        wifiMessage = nil
+        wifi.isPoweredOn = isOn
+        let service = wifiService
+        worker.async { [weak self] in
+            let succeeded = service.setPower(isOn)
+            DispatchQueue.main.async {
+                if !succeeded {
+                    self?.wifiMessage = "Wi-Fi を切り替えられませんでした"
+                }
+                self?.refreshWiFi(scan: isOn)
+            }
+        }
+    }
+
+    func join(_ network: WiFiNetwork) {
+        guard joiningNetwork == nil else { return }
+        wifiMessage = nil
+        joiningNetwork = network.ssid
+        let service = wifiService
+        worker.async { [weak self] in
+            let succeeded = service.join(network.ssid)
+            DispatchQueue.main.async {
+                self?.joiningNetwork = nil
+                if !succeeded {
+                    self?.wifiMessage = "\(network.ssid) に接続できませんでした"
+                }
+                self?.refreshWiFi(scan: false)
+            }
+        }
+    }
+
+    func setBluetoothPower(_ isOn: Bool) {
+        bluetoothMessage = nil
+        if let report = bluetooth {
+            bluetooth = BluetoothReport(isPoweredOn: isOn, devices: isOn ? report.devices : [])
+        }
+        worker.async { [weak self] in
+            BluetoothService.setPower(isOn)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                self?.refreshBluetooth()
+            }
+        }
+    }
+
+    func toggle(_ device: BluetoothDevice) {
+        guard !busyDevices.contains(device.address) else { return }
+        bluetoothMessage = nil
+        busyDevices.insert(device.address)
+        worker.async { [weak self] in
+            let succeeded = device.isConnected
+                ? BluetoothService.disconnect(device.address)
+                : BluetoothService.connect(device.address)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                self?.busyDevices.remove(device.address)
+                if !succeeded {
+                    let action = device.isConnected ? "を切断" : "に接続"
+                    self?.bluetoothMessage = "\(device.name) \(action)できませんでした"
+                }
+                self?.refreshBluetooth()
+            }
+        }
+    }
+
+    private func prepareServices() {
+        if calendar == nil {
+            let service = CalendarService()
+            service.onChange = { [weak self] in
+                self?.refreshAccess()
+                self?.refreshCalendar()
+            }
+            service.observe()
+            calendar = service
+        }
+        if location == nil {
+            let access = LocationAccess()
+            access.onChange = { [weak self] in
+                self?.refreshAccess()
+                self?.refreshWiFi(scan: true)
+            }
+            location = access
+        }
+    }
+
+    private func tick() {
+        let previous = now
+        now = Date()
+        ticks += 1
+        if !Calendar.current.isDate(previous, inSameDayAs: now) {
+            refreshCalendar()
+        } else {
+            rebuildAgenda()
+        }
+        if ticks % 5 == 0 {
+            refreshStatus()
+            refreshWiFi(scan: ticks % 30 == 0)
+        }
+    }
+
+    private func refreshAccess() {
+        calendarAccess = calendar?.state ?? .needsAccess
+        locationAccess = location?.state ?? .needsAccess
+    }
+
+    private func refreshCalendar() {
+        guard let snapshot = calendar?.load(now: now) else { return }
+        events = snapshot.events
+        calendarColors = snapshot.colors
+        rebuildAgenda()
+    }
+
+    private func rebuildAgenda() {
+        let next = Agenda.build(events: events, now: now)
+        if next != agenda {
+            agenda = next
+        }
+    }
+
+    private func refreshStatus() {
+        worker.async { [weak self] in
+            let report = BatteryService.load()
+            DispatchQueue.main.async {
+                guard let self, self.battery != report else { return }
+                self.battery = report
+            }
+        }
+        refreshBluetooth()
+    }
+
+    private func refreshBluetooth() {
+        worker.async { [weak self] in
+            let report = BluetoothService.load()
+            DispatchQueue.main.async {
+                guard let self, self.bluetooth != report else { return }
+                self.bluetooth = report
+            }
+        }
+    }
+
+    private func refreshWiFi(scan: Bool) {
+        let service = wifiService
+        worker.async { [weak self] in
+            let state = service.load(scan: false)
+            DispatchQueue.main.async {
+                self?.apply(state)
+            }
+        }
+        guard scan, !isScanning else { return }
+        isScanning = true
+        scanner.async { [weak self] in
+            let state = service.load(scan: true)
+            DispatchQueue.main.async {
+                self?.isScanning = false
+                self?.apply(state)
+            }
+        }
+    }
+
+    private func apply(_ state: WiFiState) {
+        if wifi != state {
+            wifi = state
+        }
+    }
+}

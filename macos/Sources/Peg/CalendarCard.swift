@@ -1,0 +1,252 @@
+import PegCore
+import SwiftUI
+
+struct CalendarCard: View {
+    @ObservedObject var model: ControlPanelModel
+
+    var body: some View {
+        PanelCard {
+            CardHeader(title: model.grid.title) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 14))
+            } trailing: {
+                HStack(spacing: 8) {
+                    navigationButton(symbol: "chevron.left", label: "前の月", action: model.showPreviousMonth)
+                    Button(action: model.showCurrentMonth) {
+                        Text("今日")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Theme.textSecondary)
+                            .padding(.horizontal, 8)
+                            .frame(height: 24)
+                            .background(Theme.raised)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                    navigationButton(symbol: "chevron.right", label: "次の月", action: model.showNextMonth)
+                }
+            }
+            MonthView(grid: model.grid)
+            PanelDivider()
+            agenda
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    @ViewBuilder
+    private var agenda: some View {
+        switch model.calendarAccess {
+        case .needsAccess:
+            SectionLabel(text: "今日の予定")
+            NoticeBox(
+                symbol: "calendar.badge.exclamationmark",
+                tint: Theme.textSecondary,
+                title: "アクセス許可が必要です",
+                detail: "許可すると予定を表示します",
+                buttonTitle: "許可",
+                isProminent: true,
+                action: model.requestCalendarAccess
+            )
+            Spacer(minLength: 0)
+        case .denied:
+            SectionLabel(text: "今日の予定")
+            NoticeBox(
+                symbol: "calendar.badge.exclamationmark",
+                tint: Theme.coral,
+                title: "カレンダーを読み込めません",
+                detail: "システム設定で許可してください",
+                buttonTitle: "設定",
+                isProminent: false,
+                action: model.requestCalendarAccess
+            )
+            Spacer(minLength: 0)
+        case .granted:
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    SectionLabel(text: "今日の予定")
+                    AgendaList(model: model, events: model.agenda.today)
+                    if !model.agenda.tomorrow.isEmpty {
+                        SectionLabel(text: "明日")
+                        AgendaList(model: model, events: model.agenda.tomorrow)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private func navigationButton(symbol: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Theme.textSecondary)
+                .frame(width: 24, height: 24)
+                .background(Theme.raised)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+    }
+}
+
+struct MonthView: View {
+    let grid: MonthGrid
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                ForEach(Array(ClockFormat.weekdaySymbols.enumerated()), id: \.offset) { index, symbol in
+                    Text(symbol)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(weekdayColor(index, fallback: Theme.textDim))
+                        .frame(maxWidth: .infinity, minHeight: 24)
+                }
+            }
+            ForEach(Array(grid.weeks.enumerated()), id: \.offset) { _, week in
+                HStack(spacing: 0) {
+                    ForEach(week) { day in
+                        Text(String(day.day))
+                            .font(.system(size: 12, weight: day.isToday ? .bold : .medium, design: .monospaced))
+                            .foregroundStyle(color(for: day))
+                            .frame(width: 28, height: 28)
+                            .background(day.isToday ? Theme.accent : Color.clear)
+                            .clipShape(Circle())
+                            .frame(maxWidth: .infinity, minHeight: 34)
+                    }
+                }
+            }
+        }
+    }
+
+    private func color(for day: MonthDay) -> Color {
+        if day.isToday {
+            return Color.white
+        }
+        if !day.isInMonth {
+            return Theme.textDim
+        }
+        return weekdayColor(day.weekday, fallback: Theme.textPrimary)
+    }
+
+    private func weekdayColor(_ index: Int, fallback: Color) -> Color {
+        switch index {
+        case 0:
+            return Theme.coral
+        case 6:
+            return Theme.saturday
+        default:
+            return fallback
+        }
+    }
+}
+
+struct AgendaList: View {
+    @ObservedObject var model: ControlPanelModel
+    let events: [AgendaEvent]
+
+    var body: some View {
+        if events.isEmpty {
+            HStack(spacing: 10) {
+                Image(systemName: "calendar.badge.checkmark")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.textDim)
+                Text("予定はありません")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 44)
+        } else {
+            VStack(spacing: 4) {
+                ForEach(events) { event in
+                    AgendaRow(
+                        event: event,
+                        status: event.status(at: model.now),
+                        color: model.calendarColors[event.calendarID] ?? Theme.accent,
+                        open: model.openMeet
+                    )
+                }
+            }
+        }
+    }
+}
+
+struct AgendaRow: View {
+    let event: AgendaEvent
+    let status: AgendaEvent.Status
+    let color: Color
+    let open: (URL) -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(color)
+                .opacity(status == .past ? 0.4 : 1)
+                .frame(width: 3, height: event.isAllDay ? 16 : 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(event.title)
+                    .font(.system(size: event.isAllDay ? 12 : 13, weight: status == .current ? .semibold : .medium))
+                    .foregroundStyle(status == .past ? Theme.textDim : Theme.textPrimary)
+                    .lineLimit(1)
+                if !event.isAllDay {
+                    Text(event.timeText())
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundStyle(status == .past ? Theme.textDim : Theme.textSecondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if let url = event.meetURL {
+                MeetButton(status: status) {
+                    open(url)
+                }
+            } else {
+                Text(event.isAllDay ? "終日" : event.calendarName)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Theme.textDim)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 10)
+        .frame(height: event.isAllDay && event.meetURL == nil ? 28 : 44)
+        .background(background)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+    }
+
+    private var background: Color {
+        if status == .current {
+            return Theme.accentSoft
+        }
+        if event.isAllDay {
+            return Theme.raised
+        }
+        return Color.clear
+    }
+}
+
+struct MeetButton: View {
+    let status: AgendaEvent.Status
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: "video")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(status == .current ? Color.white : Theme.textSecondary)
+                Text("Meet")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(status == .current ? Color.white : Theme.textPrimary)
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 28)
+            .background(status == .current ? Theme.accent : Theme.raised)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.radiusSmall)
+                    .stroke(status == .current ? Color.clear : Theme.border, lineWidth: 1)
+            )
+            .opacity(status == .past ? 0.6 : 1)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Meet を開く")
+    }
+}

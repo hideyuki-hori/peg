@@ -22,6 +22,14 @@
 <string>14.0</string>
 <key>LSUIElement</key>
 <true/>
+<key>NSBluetoothAlwaysUsageDescription</key>
+<string>Bluetooth デバイスの接続と切断に使用します。</string>
+<key>NSCalendarsFullAccessUsageDescription</key>
+<string>今日と明日の予定を表示するために使用します。</string>
+<key>NSLocationUsageDescription</key>
+<string>Wi-Fi のネットワーク名を表示するために使用します。</string>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>Wi-Fi のネットワーク名を表示するために使用します。</string>
 <key>NSHighResolutionCapable</key>
 <true/>
 </dict>
