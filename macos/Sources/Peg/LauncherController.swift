@@ -17,6 +17,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
     let model = LauncherModel()
     private let panel: LauncherPanel
     private let clipboard: ClipboardMonitor
+    private let backdrop = Backdrop()
     private var keyMonitor: Any?
 
     init(clipboard: ClipboardMonitor) {
@@ -31,7 +32,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
-        panel.level = .floating
+        panel.level = Backdrop.panelLevel
         panel.hidesOnDeactivate = false
         panel.isMovableByWindowBackground = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -60,11 +61,15 @@ final class LauncherController: NSObject, NSWindowDelegate {
     func show(mode: LauncherModel.Mode) {
         model.present(mode: mode, entries: AppList.load(from: PegPaths.appsFile), clips: clipboard.entries)
         position()
+        backdrop.show { [weak self] in
+            self?.hide()
+        }
         panel.makeKeyAndOrderFront(nil)
     }
 
     func hide() {
         panel.orderOut(nil)
+        backdrop.hide()
     }
 
     func windowDidResignKey(_ notification: Notification) {
