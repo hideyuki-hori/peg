@@ -237,11 +237,10 @@ struct AgendaRow: View {
                 MeetButton(status: status) {
                     open(url)
                 }
-            } else {
-                Text(event.isAllDay ? "終日" : event.calendarName)
+            } else if event.isAllDay {
+                Text("終日")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(Theme.textDim)
-                    .lineLimit(1)
             }
         }
         .padding(.horizontal, 10)
