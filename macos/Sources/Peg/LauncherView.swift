@@ -92,6 +92,8 @@ struct LauncherView: View {
             AppRow(item: item, selected: selected)
         case .clip(let entry):
             ClipRow(entry: entry, selected: selected)
+        case .calculation(let calculation):
+            CalculationRow(calculation: calculation, selected: selected)
         }
     }
 
@@ -121,6 +123,41 @@ struct AppRow: View {
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(Theme.textPrimary)
             Spacer()
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 48)
+        .background(selected ? Theme.accent.opacity(0.28) : Color.clear)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+        .contentShape(Rectangle())
+    }
+}
+
+struct CalculationRow: View {
+    let calculation: Calculation
+    let selected: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "equal")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Color.white)
+                .frame(width: 32, height: 32)
+                .background(Theme.accent)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+            Text(calculation.result)
+                .font(.system(size: 17, weight: .semibold, design: .monospaced))
+                .foregroundStyle(Theme.textPrimary)
+                .lineLimit(1)
+            Text(calculation.expression)
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(Theme.textSecondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer()
+            Text("return でコピー")
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.textSecondary)
+                .opacity(selected ? 1 : 0)
         }
         .padding(.horizontal, 12)
         .frame(height: 48)

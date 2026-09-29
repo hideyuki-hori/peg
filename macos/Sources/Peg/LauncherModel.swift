@@ -14,6 +14,7 @@ struct LauncherRow: Identifiable {
     enum Content {
         case app(AppItem)
         case clip(ClipEntry)
+        case calculation(Calculation)
     }
 
     let id: String
@@ -47,6 +48,7 @@ final class LauncherModel: ObservableObject {
 
     var onLaunch: (AppEntry) -> Void = { _ in }
     var onPick: (ClipEntry) -> Void = { _ in }
+    var onCopy: (String) -> Void = { _ in }
 
     var filteredApps: [AppItem] {
         Matcher.filter(apps, query: query) { $0.entry.name }
@@ -59,7 +61,9 @@ final class LauncherModel: ObservableObject {
     var rows: [LauncherRow] {
         switch mode {
         case .apps:
-            return filteredApps.map { LauncherRow(id: "app:" + $0.id, content: .app($0)) }
+            let apps = filteredApps.map { LauncherRow(id: "app:" + $0.id, content: .app($0)) }
+            guard let calculation = Calculator.calculate(query) else { return apps }
+            return [LauncherRow(id: "calculation", content: .calculation(calculation))] + apps
         case .clipboard:
             return filteredClips.map { LauncherRow(id: "clip:" + $0.id.uuidString, content: .clip($0)) }
         }
@@ -94,6 +98,8 @@ final class LauncherModel: ObservableObject {
             onLaunch(item.entry)
         case .clip(let entry):
             onPick(entry)
+        case .calculation(let calculation):
+            onCopy(calculation.result)
         }
     }
 

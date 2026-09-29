@@ -48,6 +48,9 @@ final class LauncherController: NSObject, NSWindowDelegate {
         model.onPick = { [weak self] entry in
             self?.pick(entry)
         }
+        model.onCopy = { [weak self] text in
+            self?.pick(ClipEntry(text: text))
+        }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
             return self.handleKey(event)
