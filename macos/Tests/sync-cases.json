@@ -1,0 +1,249 @@
+{
+  "planner": [
+    {
+      "name": "state only",
+      "remote": {},
+      "local": {},
+      "state": { "a.md": { "etag": "e1", "hash": "h1" } },
+      "actions": [{ "type": "dropState", "path": "a.md" }]
+    },
+    {
+      "name": "new local",
+      "remote": {},
+      "local": { "a.md": "h1" },
+      "state": {},
+      "actions": [{ "type": "put", "path": "a.md" }]
+    },
+    {
+      "name": "deleted on remote, local unchanged",
+      "remote": {},
+      "local": { "a.md": "h1" },
+      "state": { "a.md": { "etag": "e1", "hash": "h1" } },
+      "actions": [{ "type": "trashLocal", "path": "a.md" }]
+    },
+    {
+      "name": "deleted on remote, local changed",
+      "remote": {},
+      "local": { "a.md": "h2" },
+      "state": { "a.md": { "etag": "e1", "hash": "h1" } },
+      "actions": [{ "type": "keepAsConflict", "path": "a.md" }]
+    },
+    {
+      "name": "new remote",
+      "remote": { "a.md": "e1" },
+      "local": {},
+      "state": {},
+      "actions": [{ "type": "get", "path": "a.md" }]
+    },
+    {
+      "name": "deleted locally, remote unchanged",
+      "remote": { "a.md": "e1" },
+      "local": {},
+      "state": { "a.md": { "etag": "e1", "hash": "h1" } },
+      "actions": [{ "type": "deleteRemote", "path": "a.md" }]
+    },
+    {
+      "name": "deleted locally, remote changed",
+      "remote": { "a.md": "e2" },
+      "local": {},
+      "state": { "a.md": { "etag": "e1", "hash": "h1" } },
+      "actions": [{ "type": "get", "path": "a.md" }]
+    },
+    {
+      "name": "nothing changed",
+      "remote": { "a.md": "e1" },
+      "local": { "a.md": "h1" },
+      "state": { "a.md": { "etag": "e1", "hash": "h1" } },
+      "actions": []
+    },
+    {
+      "name": "local changed",
+      "remote": { "a.md": "e1" },
+      "local": { "a.md": "h2" },
+      "state": { "a.md": { "etag": "e1", "hash": "h1" } },
+      "actions": [{ "type": "put", "path": "a.md", "ifMatch": "e1" }]
+    },
+    {
+      "name": "remote changed",
+      "remote": { "a.md": "e2" },
+      "local": { "a.md": "h1" },
+      "state": { "a.md": { "etag": "e1", "hash": "h1" } },
+      "actions": [{ "type": "get", "path": "a.md" }]
+    },
+    {
+      "name": "both changed",
+      "remote": { "a.md": "e2" },
+      "local": { "a.md": "h2" },
+      "state": { "a.md": { "etag": "e1", "hash": "h1" } },
+      "actions": [{ "type": "conflict", "path": "a.md" }]
+    },
+    {
+      "name": "both exist without state",
+      "remote": { "a.md": "e1" },
+      "local": { "a.md": "h1" },
+      "state": {},
+      "actions": [{ "type": "conflict", "path": "a.md" }]
+    },
+    {
+      "name": "several paths in path order",
+      "remote": { "b.md": "e2", "dir/c.md": "e3", "e.md": "e5" },
+      "local": { "a.md": "h1", "b.md": "h2", "e.md": "h6" },
+      "state": {
+        "b.md": { "etag": "e2", "hash": "h2" },
+        "d.md": { "etag": "e4", "hash": "h4" },
+        "e.md": { "etag": "e5", "hash": "h5" }
+      },
+      "actions": [
+        { "type": "put", "path": "a.md" },
+        { "type": "dropState", "path": "d.md" },
+        { "type": "get", "path": "dir/c.md" },
+        { "type": "put", "path": "e.md", "ifMatch": "e5" }
+      ]
+    }
+  ],
+  "guard": [
+    {
+      "name": "first sync with empty remote",
+      "remoteCount": 0,
+      "localCount": 5,
+      "stateCount": 0,
+      "trashCount": 0,
+      "deleteCount": 0,
+      "blocked": false
+    },
+    {
+      "name": "remote is empty but state is not",
+      "remoteCount": 0,
+      "localCount": 3,
+      "stateCount": 3,
+      "trashCount": 3,
+      "deleteCount": 0,
+      "blocked": true
+    },
+    {
+      "name": "local is empty but state is not",
+      "remoteCount": 3,
+      "localCount": 0,
+      "stateCount": 3,
+      "trashCount": 0,
+      "deleteCount": 3,
+      "blocked": true
+    },
+    {
+      "name": "a few local deletions",
+      "remoteCount": 5,
+      "localCount": 12,
+      "stateCount": 12,
+      "trashCount": 9,
+      "deleteCount": 0,
+      "blocked": false
+    },
+    {
+      "name": "many local deletions but under half",
+      "remoteCount": 40,
+      "localCount": 50,
+      "stateCount": 50,
+      "trashCount": 10,
+      "deleteCount": 0,
+      "blocked": false
+    },
+    {
+      "name": "exactly half",
+      "remoteCount": 10,
+      "localCount": 20,
+      "stateCount": 20,
+      "trashCount": 10,
+      "deleteCount": 0,
+      "blocked": false
+    },
+    {
+      "name": "more than half trashed",
+      "remoteCount": 9,
+      "localCount": 20,
+      "stateCount": 20,
+      "trashCount": 11,
+      "deleteCount": 0,
+      "blocked": true
+    },
+    {
+      "name": "more than half deleted on remote",
+      "remoteCount": 20,
+      "localCount": 9,
+      "stateCount": 20,
+      "trashCount": 0,
+      "deleteCount": 11,
+      "blocked": true
+    },
+    {
+      "name": "a few remote deletions",
+      "remoteCount": 20,
+      "localCount": 17,
+      "stateCount": 20,
+      "trashCount": 0,
+      "deleteCount": 3,
+      "blocked": false
+    }
+  ],
+  "filter": [
+    { "path": "main.md", "included": true },
+    { "path": "peg/todo.md", "included": true },
+    { "path": "images/photo.png", "included": true },
+    { "path": "notes/a.conflict-mac-20260930-1405.md", "included": true },
+    { "path": ".obsidian/app.json", "included": false },
+    { "path": ".obsidian/plugins/other/main.js", "included": false },
+    { "path": ".obsidian/plugins/peg-sync/main.js", "included": true },
+    { "path": ".obsidian/plugins/peg-sync/manifest.json", "included": true },
+    { "path": ".obsidian/plugins/peg-sync/data.json", "included": false },
+    { "path": ".obsidian/plugins/peg-sync-extra/main.js", "included": false },
+    { "path": ".trash/old.md", "included": false },
+    { "path": ".DS_Store", "included": false },
+    { "path": "notes/.DS_Store", "included": false },
+    { "path": "notes/._a.md", "included": false },
+    { "path": "notes/a._b.md", "included": true },
+    { "path": ".gitignore", "included": true }
+  ],
+  "conflict": [
+    {
+      "path": "a.md",
+      "device": "mac",
+      "stamp": "20260930-1405",
+      "expected": "a.conflict-mac-20260930-1405.md"
+    },
+    {
+      "path": "notes/sub/a.md",
+      "device": "iphone",
+      "stamp": "20260930-1405",
+      "expected": "notes/sub/a.conflict-iphone-20260930-1405.md"
+    },
+    {
+      "path": "notes/README",
+      "device": "mac",
+      "stamp": "20260930-1405",
+      "expected": "notes/README.conflict-mac-20260930-1405"
+    },
+    {
+      "path": ".gitignore",
+      "device": "mac",
+      "stamp": "20260930-1405",
+      "expected": ".gitignore.conflict-mac-20260930-1405"
+    },
+    {
+      "path": "v1.2/archive.tar.gz",
+      "device": "mac",
+      "stamp": "20260930-1405",
+      "expected": "v1.2/archive.tar.conflict-mac-20260930-1405.gz"
+    },
+    {
+      "path": "a.md",
+      "device": "h's iPhone",
+      "stamp": "20260930-1405",
+      "expected": "a.conflict-h-s-iPhone-20260930-1405.md"
+    },
+    {
+      "path": "a.md",
+      "device": "",
+      "stamp": "20260930-1405",
+      "expected": "a.conflict-device-20260930-1405.md"
+    }
+  ]
+}

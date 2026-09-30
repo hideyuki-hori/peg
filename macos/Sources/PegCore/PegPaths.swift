@@ -19,6 +19,10 @@ public enum PegPaths {
         configDirectory.appendingPathComponent("clipboard.json")
     }
 
+    public static var syncStateFile: URL {
+        configDirectory.appendingPathComponent("sync-state.json")
+    }
+
     public static func prepare() throws {
         let manager = FileManager.default
         try manager.createDirectory(at: configDirectory, withIntermediateDirectories: true)

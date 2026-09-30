@@ -283,6 +283,7 @@ final class ControlPanelModel: ObservableObject {
             if let changed = change(try TodoService.read(url)) {
                 try TodoService.write(changed, to: url)
                 succeeded = true
+                SyncService.shared.start()
             }
         } catch {
             todoMessage = "todo.md を更新できませんでした"

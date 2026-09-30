@@ -6,7 +6,9 @@ let package = Package(
     platforms: [.macOS(.v14)],
     targets: [
         .target(name: "PegCore"),
-        .executableTarget(name: "Peg", dependencies: ["PegCore"]),
-        .testTarget(name: "PegCoreTests", dependencies: ["PegCore"])
+        .target(name: "PegSync", dependencies: ["PegCore"]),
+        .executableTarget(name: "Peg", dependencies: ["PegCore", "PegSync"]),
+        .testTarget(name: "PegCoreTests", dependencies: ["PegCore"]),
+        .testTarget(name: "PegSyncTests", dependencies: ["PegCore", "PegSync"])
     ]
 )

@@ -202,11 +202,49 @@ public enum TodoDocument {
     }
 }
 
+public struct R2Config: Codable, Equatable, Sendable {
+    public var accountId: String
+    public var bucket: String
+    public var prefix: String?
+    public var accessKeyId: String
+    public var secretAccessKey: String
+
+    public init(accountId: String, bucket: String, prefix: String? = nil, accessKeyId: String, secretAccessKey: String) {
+        self.accountId = accountId
+        self.bucket = bucket
+        self.prefix = prefix
+        self.accessKeyId = accessKeyId
+        self.secretAccessKey = secretAccessKey
+    }
+}
+
+public struct SyncConfig: Codable, Equatable, Sendable {
+    public var deviceName: String?
+
+    public init(deviceName: String? = nil) {
+        self.deviceName = deviceName
+    }
+}
+
+public struct EditorConfig: Codable, Equatable, Sendable {
+    public var root: String?
+
+    public init(root: String? = nil) {
+        self.root = root
+    }
+}
+
 public struct PegConfig: Codable, Equatable, Sendable {
     public var vaultPath: String?
+    public var r2: R2Config?
+    public var sync: SyncConfig?
+    public var editor: EditorConfig?
 
-    public init(vaultPath: String? = nil) {
+    public init(vaultPath: String? = nil, r2: R2Config? = nil, sync: SyncConfig? = nil, editor: EditorConfig? = nil) {
         self.vaultPath = vaultPath
+        self.r2 = r2
+        self.sync = sync
+        self.editor = editor
     }
 
     public static func load(from url: URL) -> PegConfig {
@@ -217,7 +255,21 @@ public struct PegConfig: Codable, Equatable, Sendable {
     }
 
     public func todoFile(homeDirectory: String = NSHomeDirectory()) -> URL? {
-        guard let path = vaultPath?.trimmingCharacters(in: .whitespaces), !path.isEmpty else { return nil }
+        vaultDirectory(homeDirectory: homeDirectory)?
+            .appendingPathComponent("peg")
+            .appendingPathComponent("todo.md")
+    }
+
+    public func vaultDirectory(homeDirectory: String = NSHomeDirectory()) -> URL? {
+        PegConfig.expand(vaultPath, homeDirectory: homeDirectory)
+    }
+
+    public func editorRoot(homeDirectory: String = NSHomeDirectory()) -> URL? {
+        PegConfig.expand(editor?.root, homeDirectory: homeDirectory) ?? vaultDirectory(homeDirectory: homeDirectory)
+    }
+
+    static func expand(_ path: String?, homeDirectory: String) -> URL? {
+        guard let path = path?.trimmingCharacters(in: .whitespaces), !path.isEmpty else { return nil }
         var expanded = path
         if expanded == "~" {
             expanded = homeDirectory
@@ -226,7 +278,5 @@ public struct PegConfig: Codable, Equatable, Sendable {
         }
         guard expanded.hasPrefix("/") else { return nil }
         return URL(fileURLWithPath: expanded)
-            .appendingPathComponent("peg")
-            .appendingPathComponent("todo.md")
     }
 }
