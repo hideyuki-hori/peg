@@ -15,7 +15,6 @@ final class LauncherPanel: NSPanel {
 @MainActor
 final class LauncherController: NSObject, NSWindowDelegate {
     let model = LauncherModel()
-    let panelModel = ControlPanelModel()
     private let panel: LauncherPanel
     private let clipboard: ClipboardMonitor
     private let backdrop = Backdrop()
@@ -37,11 +36,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
         panel.hidesOnDeactivate = false
         panel.isMovableByWindowBackground = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.contentView = NSHostingView(rootView: LauncherScreenView(model: model, panel: panelModel))
+        panel.contentView = NSHostingView(rootView: LauncherScreenView(model: model))
         panel.delegate = self
-        panelModel.onClose = { [weak self] in
-            self?.hide()
-        }
         model.onLaunch = { [weak self] entry in
             self?.launch(entry)
         }
@@ -72,25 +68,11 @@ final class LauncherController: NSObject, NSWindowDelegate {
             self?.hide()
         }
         panel.makeKeyAndOrderFront(nil)
-        refreshCards(for: mode)
     }
 
     func hide() {
         panel.orderOut(nil)
         backdrop.hide()
-        panelModel.stop()
-    }
-
-    private func refreshCards(for mode: LauncherModel.Mode) {
-        let layout = model.layout
-        guard mode == .apps, layout.cardWidth != nil || layout.clockY != nil || layout.todoHeight != nil else {
-            panelModel.stop()
-            return
-        }
-        DispatchQueue.main.async { [weak self] in
-            guard let self, self.panel.isVisible, self.model.mode == .apps else { return }
-            self.panelModel.start()
-        }
     }
 
     func windowDidResignKey(_ notification: Notification) {
@@ -128,13 +110,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
         }
         let control = event.modifierFlags.contains(.control)
         let command = event.modifierFlags.contains(.command)
-        if event.keyCode == 45, command, model.mode == .apps, model.layout.todoHeight != nil {
-            model.focus = .todo
-            return nil
-        }
-        if model.focus == .todo {
-            guard event.keyCode == 53 else { return event }
-            model.focus = .search
+        if event.keyCode == 12, command {
+            NSApp.terminate(nil)
             return nil
         }
         switch event.keyCode {

@@ -3,7 +3,6 @@ import SwiftUI
 
 struct LauncherScreenView: View {
     @ObservedObject var model: LauncherModel
-    let panel: ControlPanelModel
 
     var body: some View {
         let layout = model.layout
@@ -12,9 +11,6 @@ struct LauncherScreenView: View {
             LauncherView(model: model)
                 .floatingShadow()
                 .offset(x: layout.launcherX, y: layout.launcherY)
-            if model.mode == .apps {
-                SideCards(panel: panel, launcher: model, layout: layout)
-            }
         }
         .frame(width: layout.width, height: layout.height, alignment: .topLeading)
         .preferredColorScheme(.dark)

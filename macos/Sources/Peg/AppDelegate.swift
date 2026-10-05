@@ -1,15 +1,16 @@
 import AppKit
 import Carbon.HIToolbox
 import PegCore
+import PegNotes
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var clipboard: ClipboardMonitor?
     private var launcher: LauncherController?
     private var hotKey: HotKey?
-    private var editor: NoteEditorController?
-    private var editorHotKey: HotKey?
-    private var doubleCommand: DoubleCommandMonitor?
+    private var sticky: StickyController?
+    private var doubleCommand: DoubleModifierMonitor?
+    private var doubleFunction: DoubleModifierMonitor?
     private var statusItem: StatusItemController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -26,7 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let launcher = LauncherController(clipboard: clipboard)
         self.launcher = launcher
 
-        let doubleCommand = DoubleCommandMonitor { [weak launcher] in
+        let doubleCommand = DoubleModifierMonitor(modifier: .command) { [weak launcher] in
             launcher?.toggle(mode: .clipboard)
         }
         doubleCommand.start()
@@ -40,15 +41,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSLog("Peg: failed to register cmd+space")
         }
 
-        let editor = NoteEditorController()
-        self.editor = editor
-        editorHotKey = HotKey(keyCode: kVK_Space, modifiers: cmdKey | shiftKey) { [weak launcher, weak editor] in
+        let memoDirectory = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("memo")
+        let stickyStateFile = URL(fileURLWithPath: NSHomeDirectory())
+            .appendingPathComponent("Library/Application Support/peg/notes/stickies.json")
+        let sticky = StickyController(
+            store: NoteStore(directory: memoDirectory),
+            stateStore: StickyStateStore(file: stickyStateFile)
+        )
+        self.sticky = sticky
+        let doubleFunction = DoubleModifierMonitor(modifier: .function) { [weak launcher, weak sticky] in
             launcher?.hide()
-            editor?.toggle()
+            sticky?.toggle()
         }
-        if editorHotKey == nil {
-            NSLog("Peg: failed to register cmd+shift+space")
-        }
+        doubleFunction.start()
+        self.doubleFunction = doubleFunction
 
         let statusItem = StatusItemController { [weak launcher, weak doubleCommand] in
             doubleCommand?.reset()
@@ -59,6 +65,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         NSApp.mainMenu = makeMainMenu()
         Accessibility.requestAccess()
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard let sticky else { return .terminateNow }
+        Task {
+            await sticky.finish()
+            sender.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
     }
 
     private func makeMainMenu() -> NSMenu {

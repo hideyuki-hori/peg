@@ -121,16 +121,8 @@ final class NoteEditorModel: ObservableObject {
     }
 
     private func sync(prefix: String = "") {
-        isSyncing = true
-        Task {
-            let outcome = await SyncService.shared.run()
-            isSyncing = false
-            status = prefix + (outcome?.message ?? "")
-            if let outcome {
-                NSLog("Peg: sync: %@", outcome.message)
-            }
-            reconcile()
-        }
+        status = prefix
+        reconcile()
     }
 
     private func reconcile() {
