@@ -7,8 +7,10 @@ let package = Package(
     targets: [
         .target(name: "PegCore"),
         .target(name: "PegSync", dependencies: ["PegCore"]),
-        .executableTarget(name: "Peg", dependencies: ["PegCore", "PegSync"]),
+        .target(name: "PegNotes"),
+        .executableTarget(name: "Peg", dependencies: ["PegCore", "PegSync", "PegNotes"]),
         .testTarget(name: "PegCoreTests", dependencies: ["PegCore"]),
-        .testTarget(name: "PegSyncTests", dependencies: ["PegCore", "PegSync"])
+        .testTarget(name: "PegSyncTests", dependencies: ["PegCore", "PegSync"]),
+        .testTarget(name: "PegNotesTests", dependencies: ["PegNotes"])
     ]
 )

@@ -2,15 +2,17 @@ import AppKit
 import PegCore
 
 @MainActor
-final class DoubleCommandMonitor {
+final class DoubleModifierMonitor {
     private var detector = DoubleTapDetector()
     private var globalMonitor: Any?
     private var localMonitor: Any?
+    private let modifier: NSEvent.ModifierFlags
     private let handler: () -> Void
     private let mask: NSEvent.EventTypeMask = [.flagsChanged, .keyDown, .leftMouseDown, .rightMouseDown]
     private let modifiers: NSEvent.ModifierFlags = [.command, .shift, .option, .control, .function]
 
-    init(handler: @escaping () -> Void) {
+    init(modifier: NSEvent.ModifierFlags, handler: @escaping () -> Void) {
+        self.modifier = modifier
         self.handler = handler
     }
 
@@ -37,7 +39,7 @@ final class DoubleCommandMonitor {
     private func input(for event: NSEvent) -> DoubleTapDetector.Input {
         guard event.type == .flagsChanged else { return .other }
         let flags = event.modifierFlags.intersection(modifiers)
-        if flags == .command {
+        if flags == modifier {
             return .down
         }
         if flags.isEmpty {
