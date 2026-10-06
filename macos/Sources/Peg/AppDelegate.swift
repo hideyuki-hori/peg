@@ -24,7 +24,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         clipboard.start()
         self.clipboard = clipboard
 
-        let launcher = LauncherController(clipboard: clipboard)
+        let memoDirectory = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("memo")
+        let stickyStateFile = URL(fileURLWithPath: NSHomeDirectory())
+            .appendingPathComponent("Library/Application Support/peg/notes/stickies.json")
+        let noteStore = NoteStore(directory: memoDirectory)
+        let sticky = StickyController(store: noteStore, stateStore: StickyStateStore(file: stickyStateFile))
+        self.sticky = sticky
+
+        let launcher = LauncherController(clipboard: clipboard, notes: noteStore, sticky: sticky)
         self.launcher = launcher
 
         let doubleCommand = DoubleModifierMonitor(modifier: .command) { [weak launcher] in
@@ -41,14 +48,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSLog("Peg: failed to register cmd+space")
         }
 
-        let memoDirectory = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("memo")
-        let stickyStateFile = URL(fileURLWithPath: NSHomeDirectory())
-            .appendingPathComponent("Library/Application Support/peg/notes/stickies.json")
-        let sticky = StickyController(
-            store: NoteStore(directory: memoDirectory),
-            stateStore: StickyStateStore(file: stickyStateFile)
-        )
-        self.sticky = sticky
         let doubleFunction = DoubleModifierMonitor(modifier: .function) { [weak launcher, weak sticky] in
             launcher?.hide()
             sticky?.toggle()

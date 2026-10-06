@@ -101,3 +101,38 @@ final class DoubleTapDetectorTests: XCTestCase {
         XCTAssertFalse(detector.handle(.up, at: 0.25))
     }
 }
+
+final class HintLabelsTests: XCTestCase {
+    func testUsesSingleLettersWhenTheyFit() {
+        XCTAssertEqual(HintLabels.make(count: 0), [])
+        XCTAssertEqual(HintLabels.make(count: 3), ["a", "s", "d"])
+        XCTAssertEqual(HintLabels.make(count: 9).count, 9)
+    }
+
+    func testKeepsAsManySingleLettersAsPossibleAndStaysPrefixFree() {
+        let labels = HintLabels.make(count: 12)
+        XCTAssertEqual(labels.count, 12)
+        XCTAssertEqual(labels.prefix(8), ["a", "s", "d", "f", "g", "h", "j", "k"])
+        XCTAssertEqual(labels[8], "la")
+        for label in labels {
+            XCTAssertFalse(labels.contains { $0 != label && $0.hasPrefix(label) }, label)
+        }
+        XCTAssertEqual(Set(labels).count, 12)
+    }
+
+    func testCapsAtTwoLetters() {
+        let labels = HintLabels.make(count: 100)
+        XCTAssertEqual(labels.count, 81)
+        XCTAssertTrue(labels.allSatisfy { $0.count <= 2 })
+        XCTAssertEqual(Set(labels).count, 81)
+    }
+
+    func testMatchesTypedInput() {
+        let labels = HintLabels.make(count: 12)
+        XCTAssertEqual(HintLabels.match("", in: labels), .partial)
+        XCTAssertEqual(HintLabels.match("s", in: labels), .exact(1))
+        XCTAssertEqual(HintLabels.match("l", in: labels), .partial)
+        XCTAssertEqual(HintLabels.match("ls", in: labels), .exact(9))
+        XCTAssertEqual(HintLabels.match("q", in: labels), .none)
+    }
+}

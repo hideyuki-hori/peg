@@ -34,6 +34,29 @@ final class StickyController: NSObject {
         }
     }
 
+    func open(_ id: String) {
+        run {
+            if !self.isRestored {
+                await self.show()
+            }
+            self.isVisible = true
+            guard let window = await self.open(id, frame: nil) else { return }
+            self.focused = id
+            window.focus()
+            self.scheduleStateSave()
+        }
+    }
+
+    func createAndShow() {
+        run {
+            if !self.isRestored {
+                await self.show()
+            }
+            self.isVisible = true
+            await self.create()
+        }
+    }
+
     func finish() async {
         await closeEmptyWindows()
         stateTask?.cancel()
