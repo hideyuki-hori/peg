@@ -18,18 +18,19 @@ public enum ClockFormat {
         )
     }
 
-    public static func menuBar(_ date: Date, batteryPercent: Int?, calendar: Calendar = .current) -> String {
-        let parts = calendar.dateComponents([.month, .day, .hour, .minute, .second], from: date)
+    public static func menuBar(_ date: Date, batteryPercent: Int?, isCharging: Bool = false, calendar: Calendar = .current) -> String {
+        let parts = calendar.dateComponents([.month, .day, .weekday, .hour, .minute, .second], from: date)
         let clock = String(
-            format: "%02d/%02d %02d:%02d:%02d",
+            format: "%02d/%02d(%@) %02d:%02d:%02d",
             parts.month ?? 0,
             parts.day ?? 0,
+            symbol(forWeekday: parts.weekday ?? 1),
             parts.hour ?? 0,
             parts.minute ?? 0,
             parts.second ?? 0
         )
         guard let batteryPercent else { return clock }
-        return clock + " \(batteryPercent)%"
+        return clock + " \(batteryPercent)%" + (isCharging ? "(充電中)" : "")
     }
 
     public static func dayTitle(_ date: Date, calendar: Calendar = .current) -> String {

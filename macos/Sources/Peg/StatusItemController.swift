@@ -9,6 +9,7 @@ final class StatusItemController: NSObject {
     private var timer: Timer?
     private var ticks = 0
     private var batteryPercent: Int?
+    private var isCharging = false
 
     init(onClick: @escaping () -> Void) {
         self.onClick = onClick
@@ -43,14 +44,15 @@ final class StatusItemController: NSObject {
     }
 
     private func render() {
-        item.button?.title = ClockFormat.menuBar(Date(), batteryPercent: batteryPercent)
+        item.button?.title = ClockFormat.menuBar(Date(), batteryPercent: batteryPercent, isCharging: isCharging)
     }
 
     private func refreshBattery() {
         worker.async { [weak self] in
-            let percent = BatteryService.load()?.percent
+            let report = BatteryService.load()
             DispatchQueue.main.async {
-                self?.batteryPercent = percent
+                self?.batteryPercent = report?.percent
+                self?.isCharging = report?.state == .charging
                 self?.render()
             }
         }

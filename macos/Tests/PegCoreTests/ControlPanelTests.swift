@@ -40,9 +40,9 @@ final class ClockFormatTests: XCTestCase {
 
     func testFormatsMenuBarText() {
         let calendar = makeCalendar()
-        XCTAssertEqual(ClockFormat.menuBar(makeDate(2026, 9, 27, 22, 45, 10), batteryPercent: 98, calendar: calendar), "09/27 22:45:10 98%")
-        XCTAssertEqual(ClockFormat.menuBar(makeDate(2026, 1, 5, 9, 5, 0), batteryPercent: 7, calendar: calendar), "01/05 09:05:00 7%")
-        XCTAssertEqual(ClockFormat.menuBar(makeDate(2026, 1, 5, 12, 0, 0), batteryPercent: nil, calendar: calendar), "01/05 12:00:00")
+        XCTAssertEqual(ClockFormat.menuBar(makeDate(2026, 9, 27, 22, 45, 10), batteryPercent: 98, calendar: calendar), "09/27(日) 22:45:10 98%")
+        XCTAssertEqual(ClockFormat.menuBar(makeDate(2026, 1, 5, 9, 5, 0), batteryPercent: 7, isCharging: true, calendar: calendar), "01/05(月) 09:05:00 7%(充電中)")
+        XCTAssertEqual(ClockFormat.menuBar(makeDate(2026, 1, 5, 12, 0, 0), batteryPercent: nil, calendar: calendar), "01/05(月) 12:00:00")
     }
 
     func testFormatsDayTitle() {
