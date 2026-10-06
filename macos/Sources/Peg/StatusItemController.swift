@@ -5,13 +5,13 @@ import PegCore
 final class StatusItemController: NSObject {
     private let item: NSStatusItem
     private let worker = DispatchQueue(label: "app.peg.status-item", qos: .utility)
-    private let onClick: () -> Void
+    private let onClick: (NSView) -> Void
     private var timer: Timer?
     private var ticks = 0
     private var batteryPercent: Int?
     private var isCharging = false
 
-    init(onClick: @escaping () -> Void) {
+    init(onClick: @escaping (NSView) -> Void) {
         self.onClick = onClick
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
@@ -59,6 +59,7 @@ final class StatusItemController: NSObject {
     }
 
     @objc private func clicked() {
-        onClick()
+        guard let button = item.button else { return }
+        onClick(button)
     }
 }

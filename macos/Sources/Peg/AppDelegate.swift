@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var doubleCommand: DoubleModifierMonitor?
     private var doubleFunction: DoubleModifierMonitor?
     private var statusItem: StatusItemController?
+    private var calendarPopover: CalendarPopoverController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         do {
@@ -55,9 +56,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         doubleFunction.start()
         self.doubleFunction = doubleFunction
 
-        let statusItem = StatusItemController { [weak launcher, weak doubleCommand] in
+        let calendarPopover = CalendarPopoverController()
+        self.calendarPopover = calendarPopover
+        let statusItem = StatusItemController { [weak launcher, weak doubleCommand, weak calendarPopover] button in
             doubleCommand?.reset()
-            launcher?.toggle(mode: .apps)
+            launcher?.hide()
+            calendarPopover?.toggle(relativeTo: button)
         }
         statusItem.start()
         self.statusItem = statusItem

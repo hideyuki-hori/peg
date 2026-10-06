@@ -38,7 +38,6 @@ struct SideCards: View {
         if let cardWidth = layout.cardWidth {
             column {
                 BatteryCard(model: panel)
-                CalendarCard(model: panel)
             }
             .frame(width: cardWidth, height: layout.columnHeight, alignment: .top)
             .offset(x: layout.leftX, y: layout.columnY)

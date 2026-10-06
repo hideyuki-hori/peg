@@ -400,3 +400,45 @@ final class LauncherLayoutTests: XCTestCase {
         XCTAssertEqual(layout.columnY, 68)
     }
 }
+
+final class JapaneseHolidaysTests: XCTestCase {
+    private func names(_ year: Int) -> [String: String] {
+        let calendar = makeCalendar()
+        var result: [String: String] = [:]
+        for (date, name) in JapaneseHolidays.holidays(in: year, calendar: calendar) {
+            let parts = calendar.dateComponents([.month, .day], from: date)
+            result[String(format: "%02d-%02d", parts.month ?? 0, parts.day ?? 0)] = name
+        }
+        return result
+    }
+
+    func testHolidaysIn2026() {
+        let holidays = names(2026)
+        XCTAssertEqual(holidays["01-01"], "元日")
+        XCTAssertEqual(holidays["01-12"], "成人の日")
+        XCTAssertEqual(holidays["02-11"], "建国記念の日")
+        XCTAssertEqual(holidays["02-23"], "天皇誕生日")
+        XCTAssertEqual(holidays["03-20"], "春分の日")
+        XCTAssertEqual(holidays["05-06"], "振替休日")
+        XCTAssertEqual(holidays["07-20"], "海の日")
+        XCTAssertEqual(holidays["09-21"], "敬老の日")
+        XCTAssertEqual(holidays["09-22"], "国民の休日")
+        XCTAssertEqual(holidays["09-23"], "秋分の日")
+        XCTAssertEqual(holidays["10-12"], "スポーツの日")
+        XCTAssertEqual(holidays["11-23"], "勤労感謝の日")
+        XCTAssertEqual(holidays.count, 18)
+    }
+
+    func testHolidaysIn2025() {
+        let holidays = names(2025)
+        XCTAssertEqual(holidays["01-13"], "成人の日")
+        XCTAssertEqual(holidays["02-24"], "振替休日")
+        XCTAssertEqual(holidays["03-20"], "春分の日")
+        XCTAssertEqual(holidays["05-06"], "振替休日")
+        XCTAssertEqual(holidays["09-15"], "敬老の日")
+        XCTAssertEqual(holidays["09-23"], "秋分の日")
+        XCTAssertEqual(holidays["10-13"], "スポーツの日")
+        XCTAssertEqual(holidays["11-24"], "振替休日")
+        XCTAssertNil(holidays["09-22"])
+    }
+}

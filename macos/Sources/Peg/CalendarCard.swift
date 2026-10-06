@@ -2,7 +2,7 @@ import PegCore
 import SwiftUI
 
 struct CalendarCard: View {
-    @ObservedObject var model: ControlPanelModel
+    @ObservedObject var model: CalendarModel
 
     var body: some View {
         PanelCard {
@@ -28,8 +28,9 @@ struct CalendarCard: View {
             }
             MonthView(
                 grid: model.grid,
+                holidays: Set(model.holidays.keys),
                 markedDays: model.calendarAccess == .granted ? model.markedDays : [],
-                isSelected: model.isSelected,
+                selectedDay: model.selectedDay,
                 select: model.select
             )
             PanelDivider()
@@ -96,8 +97,9 @@ struct CalendarCard: View {
 
 struct MonthView: View {
     let grid: MonthGrid
+    let holidays: Set<Date>
     let markedDays: Set<Date>
-    let isSelected: (MonthDay) -> Bool
+    let selectedDay: Date?
     let select: (MonthDay) -> Void
 
     var body: some View {
@@ -126,15 +128,16 @@ struct MonthView: View {
     }
 
     private func cell(for day: MonthDay) -> some View {
-        Text(String(day.day))
-            .font(.system(size: 12, weight: day.isToday ? .bold : .medium, design: .monospaced))
-            .foregroundStyle(color(for: day))
+        let selected = selectedDay.map { Calendar.current.isDate(day.date, inSameDayAs: $0) } ?? false
+        return Text(String(day.day))
+            .font(.system(size: 12, weight: day.isToday || selected ? .bold : .medium, design: .monospaced))
+            .foregroundStyle(selected ? Color.white : color(for: day))
             .frame(width: 28, height: 28)
-            .background(day.isToday ? Theme.accent : Color.clear)
+            .background(day.isToday ? Theme.accent : selected ? Theme.amber.opacity(0.85) : Color.clear)
             .clipShape(Circle())
             .overlay(
                 Circle()
-                    .stroke(isSelected(day) ? Theme.accent : Color.clear, lineWidth: 1.5)
+                    .stroke(selected ? Theme.amber : Color.clear, lineWidth: 2)
             )
             .overlay(alignment: .bottom) {
                 Circle()
@@ -158,6 +161,9 @@ struct MonthView: View {
         if !day.isInMonth {
             return Theme.textDim
         }
+        if holidays.contains(day.date) {
+            return Theme.coral
+        }
         return weekdayColor(day.weekday, fallback: Theme.textPrimary)
     }
 
@@ -174,7 +180,7 @@ struct MonthView: View {
 }
 
 struct AgendaList: View {
-    @ObservedObject var model: ControlPanelModel
+    @ObservedObject var model: CalendarModel
     let events: [AgendaEvent]
     let followsClock: Bool
 
