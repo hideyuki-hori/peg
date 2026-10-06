@@ -84,6 +84,14 @@ cmd+space でランチャーを開くと、ランチャーの上と左右にカ�
 
 ## ビルドと起動
 
+リポジトリのルートで次を実行すると、ビルドして起動し直します。
+
+```sh
+./run.sh
+```
+
+中身は次と同じです。
+
 ```sh
 ./scripts/build-app.sh
 pkill -x Peg; open dist/Peg.app
