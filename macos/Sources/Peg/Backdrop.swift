@@ -1,6 +1,6 @@
 import AppKit
 
-final class BackdropView: NSVisualEffectView {
+final class BackdropView: NSView {
     var onClick: () -> Void = {}
 
     override func mouseDown(with event: NSEvent) {
@@ -23,16 +23,8 @@ final class Backdrop {
         guard windows.isEmpty else { return }
         for screen in NSScreen.screens {
             let window = makeWindow(on: screen, onClick: onClick)
-            window.alphaValue = 0
             window.orderFrontRegardless()
             windows.append(window)
-        }
-        let targets = windows
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.12
-            for window in targets {
-                window.animator().alphaValue = 1
-            }
         }
     }
 
@@ -58,9 +50,6 @@ final class Backdrop {
         window.appearance = NSAppearance(named: .darkAqua)
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         let view = BackdropView(frame: NSRect(origin: .zero, size: screen.frame.size))
-        view.material = .fullScreenUI
-        view.blendingMode = .behindWindow
-        view.state = .active
         view.autoresizingMask = [.width, .height]
         view.onClick = onClick
         window.contentView = view
